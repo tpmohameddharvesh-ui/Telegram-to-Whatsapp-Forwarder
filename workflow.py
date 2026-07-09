@@ -31,7 +31,7 @@ WHATSAPP_GROUP_ID = os.environ.get("WHATSAPP_GROUP_ID")        # Format: 1234567
 
 TG_API_ID = int(os.environ.get("TG_API_ID", 0))
 TG_API_HASH = os.environ.get("TG_API_HASH")
-TG_STRING = os.environ.get("TELEGRAM_STRING_SESSION", "")
+TG_STRING = os.environ.get("TELEGRAM_STRING_SESSION")
 
 # In-memory database tracking state of active trades
 ACTIVE_TRADES = {}

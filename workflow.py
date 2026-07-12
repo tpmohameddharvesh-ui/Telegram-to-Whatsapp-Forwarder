@@ -83,14 +83,24 @@ def analyze_signal_via_ai(text_content):
     Asks Llama to parse the trade status. 
     Returns original message text if relevant; otherwise returns 'IGNORE'.
     """
+    def analyze_signal_via_ai(text_content):
+    """
+    Asks Llama to parse the trade status. 
+    Returns original message text if relevant; otherwise returns 'IGNORE'.
+    """
     system_prompt = (
-        "You are an automated financial router analyzing trading signal updates.\n"
-        "Your sole task is to determine if the incoming text is a valid trade entry signal, "
-        "a setup/layer target update, a Take Profit (TP)/Stop Loss (SL) update, or a position closing notification.\n\n"
-        "CRITICAL RULE: If the text contains any trade updates, closing announcements (e.g., 'CLOSING PROFITS'), "
-        "or entry execution instructions, output the ORIGINAL message text exactly as received without translating, "
-        "changing, or adding any commentary.\n"
-        "If it is a pure general chat message, unrelated advertisement, or marketing link, reply exactly with 'IGNORE'."
+        "You are an automated trading signal filter specialized in extracting setups from a mixed-language (English and Malayalam) channel.\n\n"
+        "CRITICAL RULE 1 - IDENTIFY VALID TRADES:\n"
+        "Output the ORIGINAL text EXACTLY as received if the message contains trade execution instructions, scalping directions, active technical updates, or risk parameters. Look for keywords or slang like:\n"
+        "- Assets: Volatility, Volatility25, Volatility75, V25, V75, V100, V1s, Gold, XAUUSD, US30, NAS100\n"
+        "- Trade Phrasing: SELLING, BUYING, BUY, SELL, scalping, layer, layer cheytho, entry, SL, TP, points, gap kittumbol, aggressive, downside, upside\n\n"
+        "CRITICAL RULE 2 - FILTER NOISE:\n"
+        "Reply EXACTLY with the single word 'IGNORE' if the text is:\n"
+        "- A greeting (e.g., 'Good morning', 'Hi teams')\n"
+        "- A course advertisement, promotional discount, or enrollment offer\n"
+        "- Student reviews, profit screenshots celebrations, or testimonials\n"
+        "- General macro news updates without specific entry instructions\n\n"
+        "Output ONLY the original text or 'IGNORE'. Do not translate, do not add commentary."
     )
 
     try:
@@ -115,6 +125,8 @@ def analyze_signal_via_ai(text_content):
         print(f"[AI Engine Error]: {e}")
     
     return "IGNORE"
+
+    
 
 def dispatch_to_whatsapp(message_text, media_file_path=None):
     """Sends raw text or image captures straight out to Green API endpoints"""
@@ -191,13 +203,22 @@ async def telegram_message_handler(event):
         return
 
     print(f"\n[Telegram Incoming] Parsing message straight through workflow pipelines...")
+    text_lower = msg_text.lower()
     
-    # Phase 1: Determine trade relevance using the AI
-    verified_output = analyze_signal_via_ai(msg_text)
+    # --- CRITICAL BYPASS FOR SYNTHETIC INDICES ---
+    # If the message contains "volatility", "v25", "v75", etc., bypass AI gatekeeping entirely!
+    is_synthetic = any(term in text_lower for term in ["volatility", "v25", "v75", "v100", "v1s"])
     
-    if "IGNORE" in verified_output and len(verified_output) < 15:
-        print("[-] Context did not match target financial conditions. Ignored.")
-        return
+    if is_synthetic:
+        print("[System Override] Synthetic index detected! Bypassing AI verification filter.")
+        verified_output = msg_text  # Keep the original text intact
+    else:
+        # Phase 1: Determine trade relevance using the AI for normal Forex pairs
+        verified_output = analyze_signal_via_ai(msg_text)
+        
+        if "IGNORE" in verified_output and len(verified_output) < 15:
+            print("[-] Context did not match target financial conditions. Ignored.")
+            return
 
     # Phase 2: Manage asset position states via state tracker
     track_and_clean_trades(verified_output)

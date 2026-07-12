@@ -14,30 +14,43 @@ app = Flask(__name__)
 def home():
     return "Telegram-to-WhatsApp Trading Bridge Core (Green API) is active!", 200
 
+# =======================================================
+#               SIMULATOR & TEST WEBHOOK
+# =======================================================
+
 @app.route('/sim-test', methods=['GET', 'POST'])
 def simulate_channel_message():
     from flask import request
     import asyncio
-    # Extract text from the URL parameter (defaults to a Volatility test)
+    
+    # Extract text from the URL parameter
     test_text = request.args.get('text', 'Volatility(25) BUY entry now!')
+    print(f"\n[SIMULATOR] Manual testing injection triggered: '{test_text}'")
     
-    print(f"[SIMULATOR] Triggering fake channel message: '{test_text}'")
+    # Create a mock Telegram event object structure so your real handler can read it
+    class MockEvent:
+        def __init__(self, text):
+            self.text = text
+            self.message = self
+            self.media = None
     
-    # Safely inject the text into your script's processing function
-    # Note: Replace 'process_channel_message' with the actual name of the function 
-    # in your script that handles the forwarding logic.
+    mock_event = MockEvent(test_text)
+    
+    # Safely dispatch it into your existing async pipeline logic
     try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-    # If your message handler function is async, we run it in the loop
-    # You pass a dummy object or just the text string depending on how your code is written
-    # For example, if your function just takes a string:
-    # loop.run_until_complete(your_message_handler_function(test_text))
-    
-    return f"Simulation triggered for text: '{test_text}'", 200
+        # We fetch or create an event loop to handle the async call safely inside Flask
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+        print("[SIMULATOR] Routing mock event into live parsing pipeline...")
+        loop.run_until_complete(telegram_message_handler(mock_event))
+        return f"Successfully processed mock trade simulation for text: '{test_text}'", 200
+    except Exception as e:
+        print(f"[SIMULATOR Error]: Failed to run simulation injection: {e}")
+        return f"Simulation route hit, but processing error occurred: {e}", 500
 
 # =======================================================
 #               1. LIVE SYSTEM CONFIGURATION
@@ -139,16 +152,12 @@ def dispatch_to_whatsapp(message_text, media_file_path=None):
         print(f"[Green API Relay Engine Crash]: {e}")
 
 def track_and_clean_trades(msg_text):
-    """
-    Inspects keywords dynamically to match natural signal phrasing.
-    Removes tracking parameters when positions close out.
-    """
     global ACTIVE_TRADES
     text_lower = msg_text.lower()
     
-    # Identify standard trading pairs inside varied string formats
     detected_asset = None
-    known_assets = ["gold", "xau", "usd", "eur", "gbp", "jpy", "btc", "eth", "us30", "nas100"]
+    # ADDED: "volatility", "v25", "v75", "v100" to allow synthetic indices to match cleanly
+    known_assets = ["gold", "xau", "usd", "eur", "gbp", "jpy", "btc", "eth", "us30", "nas100", "volatility", "v25", "v75", "v100"]
     for asset in known_assets:
         if asset in text_lower:
             detected_asset = asset
@@ -157,7 +166,6 @@ def track_and_clean_trades(msg_text):
     if not detected_asset:
         detected_asset = "generic_asset"
 
-    # Adapt tracking to match natural expressions like "closing profits", "close now", "hit sl"
     is_closing_signal = any(term in text_lower for term in ["closing", "closed", "profit booked", "hit tp", "hit sl", "close now", "irangulloo"])
     
     if is_closing_signal:
@@ -167,8 +175,8 @@ def track_and_clean_trades(msg_text):
         else:
             print(f"[*] Close action processed for unindexed asset: {detected_asset.upper()}. Running clear routine.")
     else:
-        # Register new or update existing open entries ("selling", "buying", "target", "layer")
-        if any(term in text_lower for term in ["buying", "selling", "buy", "sell", "target", "layer", "entry"]):
+        # Register new positions or tracking metrics
+        if any(term in text_lower for term in ["buying", "selling", "buy", "sell", "target", "layer", "entry", "now"]):
             print(f"[+] Position action catalogued for asset reference: {detected_asset.upper()}")
             ACTIVE_TRADES[detected_asset] = {"status": "open", "updated_at": time.time()}
 

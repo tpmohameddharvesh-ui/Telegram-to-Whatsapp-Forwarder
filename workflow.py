@@ -14,43 +14,43 @@ app = Flask(__name__)
 def home():
     return "Telegram-to-WhatsApp Trading Bridge Core (Green API) is active!", 200
 
-# =======================================================
-#               SIMULATOR & TEST WEBHOOK
-# =======================================================
+=======================================================
+              SIMULATOR & TEST WEBHOOK
+=======================================================
 
-# @app.route('/sim-test', methods=['GET', 'POST'])
-# def simulate_channel_message():
-#     from flask import request
-#     import asyncio
+@app.route('/sim-test', methods=['GET', 'POST'])
+def simulate_channel_message():
+    from flask import request
+    import asyncio
     
-#     # Extract text from the URL parameter
-#     test_text = request.args.get('text', 'Volatility(25) BUY entry now!')
-#     print(f"\n[SIMULATOR] Manual testing injection triggered: '{test_text}'")
+    # Extract text from the URL parameter
+    test_text = request.args.get('text', 'Volatility(25) BUY entry now!')
+    print(f"\n[SIMULATOR] Manual testing injection triggered: '{test_text}'")
     
-#     # Create a mock Telegram event object structure so your real handler can read it
-#     class MockEvent:
-#         def __init__(self, text):
-#             self.text = text
-#             self.message = self
-#             self.media = None
+    # Create a mock Telegram event object structure so your real handler can read it
+    class MockEvent:
+        def __init__(self, text):
+            self.text = text
+            self.message = self
+            self.media = None
     
-#     mock_event = MockEvent(test_text)
+    mock_event = MockEvent(test_text)
     
-#     # Safely dispatch it into your existing async pipeline logic
-#     try:
-#         # We fetch or create an event loop to handle the async call safely inside Flask
-#         try:
-#             loop = asyncio.get_event_loop()
-#         except RuntimeError:
-#             loop = asyncio.new_event_loop()
-#             asyncio.set_event_loop(loop)
+    # Safely dispatch it into your existing async pipeline logic
+    try:
+        # We fetch or create an event loop to handle the async call safely inside Flask
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             
-#         print("[SIMULATOR] Routing mock event into live parsing pipeline...")
-#         loop.run_until_complete(telegram_message_handler(mock_event))
-#         return f"Successfully processed mock trade simulation for text: '{test_text}'", 200
-#     except Exception as e:
-#         print(f"[SIMULATOR Error]: Failed to run simulation injection: {e}")
-#         return f"Simulation route hit, but processing error occurred: {e}", 500
+        print("[SIMULATOR] Routing mock event into live parsing pipeline...")
+        loop.run_until_complete(telegram_message_handler(mock_event))
+        return f"Successfully processed mock trade simulation for text: '{test_text}'", 200
+    except Exception as e:
+        print(f"[SIMULATOR Error]: Failed to run simulation injection: {e}")
+        return f"Simulation route hit, but processing error occurred: {e}", 500
 
 # =======================================================
 #               1. LIVE SYSTEM CONFIGURATION
@@ -78,16 +78,7 @@ ACTIVE_TRADES = {}
 #               2. TELEGRAM & AI PROCESSING CORE
 # =======================================================
 
-def analyze_signal_via_ai(text_content):
-    """
-    Asks Llama to parse the trade status. 
-    Returns original message text if relevant; otherwise returns 'IGNORE'.
-    """
-def analyze_signal_via_ai(text_content):
-    """
-    Asks Llama to parse the trade status. 
-    Returns original message text if relevant; otherwise returns 'IGNORE'.
-    """
+
 def analyze_signal_via_ai(text_content):
     """
     Asks Llama to parse the trade status using a multi-variant few-shot Malayalam/English dataset.
@@ -259,7 +250,7 @@ def track_and_clean_trades(msg_text):
 async def telegram_message_handler(event):
     """Handles single raw messages instantly using a code-level safeguard before AI filtering"""
     msg_text = event.text or ""
-    
+    print("msg_txt")
     if not msg_text.strip() and event.message.media:
         msg_text = event.message.message or ""
         

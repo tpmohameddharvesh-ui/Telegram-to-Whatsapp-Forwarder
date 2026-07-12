@@ -248,20 +248,26 @@ def track_and_clean_trades(msg_text):
             ACTIVE_TRADES[detected_asset] = {"status": "open", "updated_at": time.time()}
 
 async def telegram_message_handler(event):
-    """Handles single raw messages instantly using a code-level safeguard before AI filtering"""
+    """Handles single raw messages instantly with dynamic origin routing"""
+    # SAFETY ENFORCEMENT: Check if the message actually came from your target channel
+    # This prevents the script from crashing or processing other chats
+    if event.chat_id != TG_SOURCE_CHANNEL:
+        return
+
     msg_text = event.text or ""
-    print("msg_txt")
+    
     if not msg_text.strip() and event.message.media:
         msg_text = event.message.message or ""
         
     if not msg_text.strip():
         return
 
-    print(f"\n[Telegram Incoming] Parsing message straight through workflow pipelines...")
+    print(f"\n[Telegram Incoming] Successfully captured stream from target channel!")
+    print(f"[Captured Text]: {msg_text}")
+    
     text_lower = msg_text.lower()
     
-    # 1. HARDCODED FORCE-PASS KEYWORDS (If it has these, it's 100% a trade update)
-    # This covers your Malayalam rules ("layer", "gap") and core execution terms
+    # HARDCODED FORCE-PASS KEYWORDS
     force_pass_terms = [
         "selling", "buying", "buy", "sell", "scalping", 
         "layer", "cheytho", "target", "sl", "tp", "profits", "losses",
@@ -274,7 +280,6 @@ async def telegram_message_handler(event):
         print("[System Override] Undeniable trade signature detected by code! Bypassing AI gatekeeper completely.")
         verified_output = msg_text
     else:
-        # Phase 2: If it doesn't match our strict trade keywords, let the AI check if it's spam/noise
         print("[AI Routing] Ambiguous message layout. Consulting Llama AI engine...")
         verified_output = analyze_signal_via_ai(msg_text)
         
@@ -283,11 +288,8 @@ async def telegram_message_handler(event):
             return
 
     print("[+] Signal authorized. Proceeding to forward...")
-
-    # Phase 3: Manage asset position states via state tracker
     track_and_clean_trades(verified_output)
 
-    # Phase 4: Extract and prepare media attachments if present
     temp_file_path = None
     if event.message.media:
         try:
@@ -295,10 +297,8 @@ async def telegram_message_handler(event):
         except Exception as e:
             print(f"[Media Download Fault]: {e}")
 
-    # Phase 5: Forward directly to WhatsApp using Green API
     dispatch_to_whatsapp(verified_output, media_file_path=temp_file_path)
 
-    # Housekeeping
     if temp_file_path and os.path.exists(temp_file_path):
         os.remove(temp_file_path)
 
@@ -309,23 +309,14 @@ def run_telegram_loop():
     
     print("[Telegram Core] Connecting Userbot loop pipeline...")
     tg_user_client = TelegramClient(StringSession(TG_STRING), TG_API_ID, TG_API_HASH, loop=loop)
-    tg_user_client.add_event_handler(telegram_message_handler, events.NewMessage(chats=TG_SOURCE_CHANNEL))
+    
+    # CHANGED HERE: We listen to ALL incoming messages globally on the account, 
+    # and let the 'event.chat_id != TG_SOURCE_CHANNEL' check inside the handler do the filtering.
+    tg_user_client.add_event_handler(telegram_message_handler, events.NewMessage())
     
     async def main_telegram_runner():
         await tg_user_client.start()
-        print("[Telegram Core] Userbot loop running. Listening to channel stream...")
-        
-        # --- DIAGNOSTIC CODE: PRINT ALL VALID CHANNELS ---
-        try:
-            print("\n--- LIVE DIALOGS AND CHAT IDS ACCESSIBLE BY THIS SESSION ---")
-            async for dialog in tg_user_client.iter_dialogs():
-                if dialog.is_channel:
-                    print(f"Channel Name: '{dialog.name}' | TARGET ID TO USE: {dialog.id}")
-            print("-----------------------------------------------------------\n")
-        except Exception as e:
-            print(f"[Diagnostic Fault]: Could not load dialogs: {e}")
-        # -------------------------------------------------
-        
+        print("[Telegram Core] Userbot loop running. Listening to global streams...")
         await tg_user_client.run_until_disconnected()
 
     loop.run_until_complete(main_telegram_runner())

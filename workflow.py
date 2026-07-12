@@ -88,20 +88,84 @@ def analyze_signal_via_ai(text_content):
     Asks Llama to parse the trade status. 
     Returns original message text if relevant; otherwise returns 'IGNORE'.
     """
+    def analyze_signal_via_ai(text_content):
+    """
+    Asks Llama to parse the trade status using a multi-variant few-shot Malayalam/English dataset.
+    """
     system_prompt = (
-        "You are an automated trading signal filter specialized in extracting setups from a mixed-language (English and Malayalam) channel.\n\n"
-        "CRITICAL RULE 1 - IDENTIFY VALID TRADES:\n"
-        "Output the ORIGINAL text EXACTLY as received if the message contains trade execution instructions, scalping directions, active technical updates, or risk parameters. Look for keywords or slang like:\n"
-        "- Assets: Volatility, Volatility25, Volatility75, V25, V75, V100, V1s, Gold, XAUUSD, US30, NAS100\n"
-        "- Trade Phrasing: SELLING, BUYING, BUY, SELL, scalping, layer, layer cheytho, entry, SL, TP, points, gap kittumbol, aggressive, downside, upside\n\n"
-        "CRITICAL RULE 2 - FILTER NOISE:\n"
-        "Reply EXACTLY with the single word 'IGNORE' if the text is:\n"
-        "- A greeting (e.g., 'Good morning', 'Hi teams')\n"
-        "- A course advertisement, promotional discount, or enrollment offer\n"
-        "- Student reviews, profit screenshots celebrations, or testimonials\n"
-        "- General macro news updates without specific entry instructions\n\n"
-        "Output ONLY the original text or 'IGNORE'. Do not translate, do not add commentary."
+        "You are an expert financial signal routing filter analyzing mixed-language trading streams.\n"
+        "The channel blends traditional trading terms (BUY, SELL, SL, TP, Target) with conversational Malayalam "
+        "slang directives, technical observations, and emotional expressions.\n\n"
+        
+        "CRITICAL COMPLIANCE RULES:\n"
+        "1. If the input contains live trade entries, market execution orders, specific pricing predictions, "
+        "layering instructions ('layer pidicho', 'gap itt layer'), risk updates ('over risk edukkalletto'), status changes, "
+        "or exit calls ('CLOSING PROFITS', 'CLOSING LOSSES'), you MUST return the ORIGINAL text EXACTLY as received. "
+        "Do not strip newlines, do not translate, and do not add comments.\n"
+        "2. If the text is an advertisement for a premium course, student testimonials/reviews, casual general greetings "
+        "(e.g., 'Good morning team'), or promotional enrollment codes, reply with exactly the single word 'IGNORE'.\n\n"
+        
+        "--- LIVE SIGNAL REFERENCE DATASET (VALID SCENARIOS) ---\n\n"
+        
+        "Example 1 (Multi-Stage Execution & Risk Warnings):\n"
+        "Input: IAM SELLING GOLD (XAUUSD) Now or while pushing upside.\nTarget around $4040\nOver risk edukkalletto oru reversal vannitte irangulloo. High kittumbol layer\nCLOSING GOLD PROFITS🤑🤑\n"
+        "Output: IAM SELLING GOLD (XAUUSD) Now or while pushing upside.\nTarget around $4040\nOver risk edukkalletto oru reversal vannitte irangulloo. High kittumbol layer\nCLOSING GOLD PROFITS🤑🤑\n\n"
+        
+        "Example 2 (Synthetic Volatility Multi-line Slang):\n"
+        "Input: IAM SELLING Volatility25(1s) now or while pushing upside..\nGap itt layer cheytho.\nSL 3000/4000 points\nCheriya time frame gap kittumbol aggressive SELL SIDE scalping.\n"
+        "Output: IAM SELLING Volatility25(1s) now or while pushing upside..\nGap itt layer cheytho.\nSL 3000/4000 points\nCheriya time frame gap kittumbol aggressive SELL SIDE scalping.\n\n"
+        
+        "Example 3 (Volume Alerts & Quick Exit Changes):\n"
+        "Input: IAM BUYING GOLD NOW.\nTarget $4132\nClose it on small profits there is no buyers volume\n"
+        "Output: IAM BUYING GOLD NOW.\nTarget $4132\nClose it on small profits there is no buyers volume\n\n"
+        
+        "Example 4 (Market Projections & Local Celebration Slang):\n"
+        "Input: GOLD IS GOING TO EXPLODE SOON UNTIL $4165\nAdich minneda\nMASHALLAH 🥰\nENJOY THE FREE MONEY 💰\nAkoshikki\n"
+        "Output: GOLD IS GOING TO EXPLODE SOON UNTIL $4165\nAdich minneda\nMASHALLAH 🥰\nENJOY THE FREE MONEY 💰\nAkoshikki\n\n"
+        
+        "Example 5 (High Volatility Event & News Warnings):\n"
+        "Input: Always get ready for NFP NEWS TRADE…\nIf you can’t take risk then don’t trade on news\nKuttikal noki irikki ♦️♦️♦️♦️\nIAM BUYING GOLD (XAUUSD) NOW\nMASHALLAH NFP ON FIRE 🔥\n"
+        "Output: Always get ready for NFP NEWS TRADE…\nIf you can’t take risk then don’t trade on news\nKuttikal noki irikki ♦️♦️♦️♦️\nIAM BUYING GOLD (XAUUSD) NOW\nMASHALLAH NFP ON FIRE 🔥\n\n"
+        
+        "Example 6 (Index Management & Operational Humor):\n"
+        "Input: IAM SELLING USTECH100 NOW OR WHILE PUSHING UPSIDE…\nMore SELLS ON THE RALLIES…\nUSTECH100 Njanippol thazhek varuthi tharaam Athyavashyam profitayal close okey.\n15 minutes candle njanaan undakkunnath\nCLOSING LOSSES\n"
+        "Output: IAM SELLING USTECH100 NOW OR WHILE PUSHING UPSIDE…\nMore SELLS ON THE RALLIES…\nUSTECH100 Njanippol thazhek varuthi tharaam Athyavashyam profitayal close okey.\n15 minutes candle njanaan undakkunnath\nCLOSING LOSSES\n\n"
+        
+        "--- LIVE REFERENCE DATASET (NOISE / SPAM TO IGNORE) ---\n\n"
+        
+        "Example 7 (Standard Chat Greeting):\n"
+        "Input: Good morning everyone! Let's watch the charts closely today and maintain risk management strategies.\n"
+        "Output: IGNORE\n\n"
+        
+        "Example 8 (Mentorship Course Advertisement):\n"
+        "Input: Admissions are now open for our Advanced Trading Course! Join today using discount code VIP50 to learn private market strategies.\n"
+        "Output: IGNORE\n\n"
+        
+        "Evaluate the user input strictly according to these explicit structural alignments. Output ONLY the original string or 'IGNORE'."
     )
+
+    try:
+        openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "meta-llama/llama-3.1-8b-instruct:free", 
+            "messages": [
+                {"role": "system", "content": system_prompt}, 
+                {"role": "user", "content": text_content}
+            ],
+            "temperature": 0.1
+        }
+
+        response = requests.post(openrouter_url, json=payload, headers=headers, timeout=15)
+        if response.status_code == 200:
+            return response.json()['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        print(f"[AI Engine Error]: {e}")
+    
+    return "IGNORE"
 
     try:
         openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
@@ -193,7 +257,7 @@ def track_and_clean_trades(msg_text):
             ACTIVE_TRADES[detected_asset] = {"status": "open", "updated_at": time.time()}
 
 async def telegram_message_handler(event):
-    """Handles single raw messages instantly upon creation"""
+    """Handles single raw messages instantly by letting the trained AI do the heavy lifting"""
     msg_text = event.text or ""
     
     if not msg_text.strip() and event.message.media:
@@ -203,39 +267,30 @@ async def telegram_message_handler(event):
         return
 
     print(f"\n[Telegram Incoming] Parsing message straight through workflow pipelines...")
-    text_lower = msg_text.lower()
     
-    # --- CRITICAL BYPASS FOR SYNTHETIC INDICES ---
-    # If the message contains "volatility", "v25", "v75", etc., bypass AI gatekeeping entirely!
-    is_synthetic = any(term in text_lower for term in ["volatility", "v25", "v75", "v100", "v1s"])
+    # Run the message through the newly trained AI model
+    verified_output = analyze_signal_via_ai(msg_text)
     
-    if is_synthetic:
-        print("[System Override] Synthetic index detected! Bypassing AI verification filter.")
-        verified_output = msg_text  # Keep the original text intact
-    else:
-        # Phase 1: Determine trade relevance using the AI for normal Forex pairs
-        verified_output = analyze_signal_via_ai(msg_text)
-        
-        if "IGNORE" in verified_output and len(verified_output) < 15:
-            print("[-] Context did not match target financial conditions. Ignored.")
-            return
+    if "IGNORE" in verified_output and len(verified_output) < 15:
+        print("[-] Context categorized as noise/general chat. Ignored.")
+        return
 
-    # Phase 2: Manage asset position states via state tracker
+    print("[+] Valid signal confirmed by AI. Proceeding to forward...")
+    
+    # Manage asset position states via state tracker
     track_and_clean_trades(verified_output)
 
-    # Phase 3: Extract and prepare media attachments if present
+    # Extract and prepare media attachments if present
     temp_file_path = None
     if event.message.media:
-        print("[Media Handling] Fetching attached photo payload details from cloud server...")
         try:
             temp_file_path = await event.message.download_media(file="temp_signal_media")
         except Exception as e:
             print(f"[Media Download Fault]: {e}")
 
-    # Phase 4: Forward everything directly to WhatsApp using Green API
+    # Forward directly to WhatsApp
     dispatch_to_whatsapp(verified_output, media_file_path=temp_file_path)
 
-    # Housekeeping: Clear local storage assets safely
     if temp_file_path and os.path.exists(temp_file_path):
         os.remove(temp_file_path)
 

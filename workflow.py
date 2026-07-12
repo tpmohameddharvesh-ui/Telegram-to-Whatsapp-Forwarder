@@ -88,7 +88,7 @@ def analyze_signal_via_ai(text_content):
     Asks Llama to parse the trade status. 
     Returns original message text if relevant; otherwise returns 'IGNORE'.
     """
-    def analyze_signal_via_ai(text_content):
+def analyze_signal_via_ai(text_content):
     """
     Asks Llama to parse the trade status using a multi-variant few-shot Malayalam/English dataset.
     """

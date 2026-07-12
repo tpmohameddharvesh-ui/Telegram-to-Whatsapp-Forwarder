@@ -257,7 +257,7 @@ def track_and_clean_trades(msg_text):
             ACTIVE_TRADES[detected_asset] = {"status": "open", "updated_at": time.time()}
 
 async def telegram_message_handler(event):
-    """Handles single raw messages instantly by letting the trained AI do the heavy lifting"""
+    """Handles single raw messages instantly using a code-level safeguard before AI filtering"""
     msg_text = event.text or ""
     
     if not msg_text.strip() and event.message.media:
@@ -267,20 +267,36 @@ async def telegram_message_handler(event):
         return
 
     print(f"\n[Telegram Incoming] Parsing message straight through workflow pipelines...")
+    text_lower = msg_text.lower()
     
-    # Run the message through the newly trained AI model
-    verified_output = analyze_signal_via_ai(msg_text)
+    # 1. HARDCODED FORCE-PASS KEYWORDS (If it has these, it's 100% a trade update)
+    # This covers your Malayalam rules ("layer", "gap") and core execution terms
+    force_pass_terms = [
+        "selling", "buying", "buy", "sell", "scalping", 
+        "layer", "cheytho", "target", "sl", "tp", "profits", "losses",
+        "volatility", "v25", "v75", "xauusd", "ustech100"
+    ]
     
-    if "IGNORE" in verified_output and len(verified_output) < 15:
-        print("[-] Context categorized as noise/general chat. Ignored.")
-        return
+    is_undeniable_trade = any(term in text_lower for term in force_pass_terms)
+    
+    if is_undeniable_trade:
+        print("[System Override] Undeniable trade signature detected by code! Bypassing AI gatekeeper completely.")
+        verified_output = msg_text
+    else:
+        # Phase 2: If it doesn't match our strict trade keywords, let the AI check if it's spam/noise
+        print("[AI Routing] Ambiguous message layout. Consulting Llama AI engine...")
+        verified_output = analyze_signal_via_ai(msg_text)
+        
+        if "IGNORE" in verified_output and len(verified_output) < 15:
+            print("[-] Context categorized as noise/general chat. Ignored.")
+            return
 
-    print("[+] Valid signal confirmed by AI. Proceeding to forward...")
-    
-    # Manage asset position states via state tracker
+    print("[+] Signal authorized. Proceeding to forward...")
+
+    # Phase 3: Manage asset position states via state tracker
     track_and_clean_trades(verified_output)
 
-    # Extract and prepare media attachments if present
+    # Phase 4: Extract and prepare media attachments if present
     temp_file_path = None
     if event.message.media:
         try:
@@ -288,9 +304,10 @@ async def telegram_message_handler(event):
         except Exception as e:
             print(f"[Media Download Fault]: {e}")
 
-    # Forward directly to WhatsApp
+    # Phase 5: Forward directly to WhatsApp using Green API
     dispatch_to_whatsapp(verified_output, media_file_path=temp_file_path)
 
+    # Housekeeping
     if temp_file_path and os.path.exists(temp_file_path):
         os.remove(temp_file_path)
 

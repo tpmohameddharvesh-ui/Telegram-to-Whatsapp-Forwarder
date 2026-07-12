@@ -314,6 +314,18 @@ def run_telegram_loop():
     async def main_telegram_runner():
         await tg_user_client.start()
         print("[Telegram Core] Userbot loop running. Listening to channel stream...")
+        
+        # --- DIAGNOSTIC CODE: PRINT ALL VALID CHANNELS ---
+        try:
+            print("\n--- LIVE DIALOGS AND CHAT IDS ACCESSIBLE BY THIS SESSION ---")
+            async for dialog in tg_user_client.iter_dialogs():
+                if dialog.is_channel:
+                    print(f"Channel Name: '{dialog.name}' | TARGET ID TO USE: {dialog.id}")
+            print("-----------------------------------------------------------\n")
+        except Exception as e:
+            print(f"[Diagnostic Fault]: Could not load dialogs: {e}")
+        # -------------------------------------------------
+        
         await tg_user_client.run_until_disconnected()
 
     loop.run_until_complete(main_telegram_runner())

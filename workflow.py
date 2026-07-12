@@ -14,9 +14,9 @@ app = Flask(__name__)
 def home():
     return "Telegram-to-WhatsApp Trading Bridge Core (Green API) is active!", 200
 
-=======================================================
-              SIMULATOR & TEST WEBHOOK
-=======================================================
+# =======================================================
+#               SIMULATOR & TEST WEBHOOK
+# =======================================================
 
 @app.route('/sim-test', methods=['GET', 'POST'])
 def simulate_channel_message():

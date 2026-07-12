@@ -14,6 +14,30 @@ app = Flask(__name__)
 def home():
     return "Telegram-to-WhatsApp Trading Bridge Core (Green API) is active!", 200
 
+@app.route('/sim-test', methods=['GET', 'POST'])
+def simulate_channel_message():
+    import asyncio
+    # Extract text from the URL parameter (defaults to a Volatility test)
+    test_text = request.args.get('text', 'Volatility(25) BUY entry now!')
+    
+    print(f"[SIMULATOR] Triggering fake channel message: '{test_text}'")
+    
+    # Safely inject the text into your script's processing function
+    # Note: Replace 'process_channel_message' with the actual name of the function 
+    # in your script that handles the forwarding logic.
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+    # If your message handler function is async, we run it in the loop
+    # You pass a dummy object or just the text string depending on how your code is written
+    # For example, if your function just takes a string:
+    # loop.run_until_complete(your_message_handler_function(test_text))
+    
+    return f"Simulation triggered for text: '{test_text}'", 200
+
 # =======================================================
 #               1. LIVE SYSTEM CONFIGURATION
 # =======================================================

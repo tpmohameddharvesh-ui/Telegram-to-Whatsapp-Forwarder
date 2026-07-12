@@ -16,6 +16,7 @@ def home():
 
 @app.route('/sim-test', methods=['GET', 'POST'])
 def simulate_channel_message():
+    from flask import request
     import asyncio
     # Extract text from the URL parameter (defaults to a Volatility test)
     test_text = request.args.get('text', 'Volatility(25) BUY entry now!')
